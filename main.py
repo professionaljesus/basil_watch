@@ -39,6 +39,9 @@ if not cap.isOpened():
     exit(1)
 
 def save():
+    if len(daily_frames) == 0:
+        return
+
     global daily_frames
     try:
         new_vid_path = os.path.join(working_dir, "new_video.mp4")
