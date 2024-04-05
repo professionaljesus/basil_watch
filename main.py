@@ -39,10 +39,9 @@ if not cap.isOpened():
     exit(1)
 
 def save():
+    global daily_frames
     if len(daily_frames) == 0:
         return
-
-    global daily_frames
     try:
         new_vid_path = os.path.join(working_dir, "new_video.mp4")
         new_vid = cv2.VideoWriter(new_vid_path, cv2.VideoWriter_fourcc(*'avc1'), 30, (1920, 1080))
