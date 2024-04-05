@@ -71,7 +71,7 @@ def capture_image(jpg = False):
         frame = outlined_text(frame, txt, (10,30))
         daily_frames.append(frame)
         if jpg:
-            cv2.imwrite(os.path.join(image_dir, f'{now_time.strftime('%Y_%m_%d__%H_%M')}.jpg'), frame)
+            cv2.imwrite(os.path.join(image_dir, f"{now_time.strftime('%Y_%m_%d__%H_%M')}.jpg"), frame)
         print(txt)
 
 if __name__ == "__main__":
