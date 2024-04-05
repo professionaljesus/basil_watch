@@ -78,7 +78,6 @@ if __name__ == "__main__":
     schedule.every(3).minutes.do(capture_image)
     schedule.every(1).hours.do(capture_image, jpg=True)
     schedule.every().day.at("23:30").do(save)
-    save()
     while running:
         schedule.run_pending()
         time.sleep(20)
