@@ -4,6 +4,14 @@ import time
 import schedule
 import signal
 import os
+import subprocess
+
+def outlined_text(frame, txt, center, scale = 1, outline_color = [0,0,0], color = [255, 255, 255]):
+    frame = cv2.putText(img=frame, text=txt, org=center,
+        fontFace=cv2.FONT_HERSHEY_COMPLEX , fontScale=scale, color=outline_color, lineType=cv2.LINE_AA, thickness=round(4 * scale))
+    frame = cv2.putText(img=frame, text=txt, org=center,
+        fontFace=cv2.FONT_HERSHEY_COMPLEX , fontScale=scale, color=color, lineType=cv2.LINE_AA, thickness=round(2 * scale))
+    return frame
 
 working_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -31,43 +39,46 @@ if not cap.isOpened():
     exit(1)
 
 def save():
-    old_vid_path = os.path.join(working_dir, "video.mp4")
-    new_vid_path = os.path.join(working_dir, "new_video.mp4")
-    old_vid = cv2.VideoCapture(old_vid_path)
-    new_vid = cv2.VideoCapture(new_vid_path)
-    new_vid.set(cv2.CAP_PROP_FPS, 15)
+    global daily_frames
+    try:
+        new_vid_path = os.path.join(working_dir, "new_video.mp4")
+        new_vid = cv2.VideoWriter(new_vid_path, cv2.VideoWriter_fourcc(*'avc1'), 30, (1920, 1080))
 
-    if old_vid.isOpened():
-        while True:
-            ret, frame = old_vid.read()
-            new_vid.write(frame)
-
-            if not ret or frame is None:
-                break
+        print(f'---- saving {len(daily_frames)} frames ----')
         for frame in daily_frames:
             new_vid.write(frame)
         new_vid.release()
+        daily_frames.clear()
 
-    os.replace(new_vid_path, old_vid_path)
+        temp_vid_path = os.path.join(working_dir, "temp_video.mp4")
+        popen_args = list(f'ffmpeg -f concat -i {os.path.join(working_dir, "video_list.txt")} -c copy {temp_vid_path} -y'.split(" "))
 
+        subprocess.run(popen_args, stdout=subprocess.DEVNULL)
+        os.replace(temp_vid_path, os.path.join(working_dir, 'big_video.mp4'))
 
+        print(f'---- done ----')
+    except:
+        print('---------------------- COULDNT SAVE VIDEO ------------------------------------------------')
 
-
-def capture_image():
+def capture_image(jpg = False):
     now_time = datetime.datetime.now()
-    if not (5 <= now_time.hour <= 20):
+    if not (5 <= now_time.hour <= 21):
         return
 
     ret, frame = cap.read()
     if ret:
+        txt = now_time.strftime('%Y/%m/%d - %H:%M')
+        frame = outlined_text(frame, txt, (10,30))
         daily_frames.append(frame)
-        timestamp = int(time.time())
-        print(f'Saving image {timestamp}.jpg')
-        cv2.imwrite(os.path.join(image_dir, f'{timestamp}.jpg'), frame)
+        if jpg:
+            cv2.imwrite(os.path.join(image_dir, f'{now_time.strftime('%Y_%m_%d__%H_%M')}.jpg'), frame)
+        print(txt)
 
 if __name__ == "__main__":
-    schedule.every(1).minutes.do(capture_image)
-
+    schedule.every(3).minutes.do(capture_image)
+    schedule.every(1).hours.do(capture_image, jpg=True)
+    schedule.every().day.at("23:30").do(save)
+    save()
     while running:
         schedule.run_pending()
         time.sleep(20)
