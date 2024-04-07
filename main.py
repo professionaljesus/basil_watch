@@ -20,7 +20,6 @@ if not os.path.exists(image_dir):
     os.mkdir(image_dir)
 
 running = True
-daily_frames = []
 
 def processkill(signum = None, frame = None):
     global running
@@ -39,47 +38,37 @@ if not cap.isOpened():
     exit(1)
 
 def save():
-    global daily_frames
-    if len(daily_frames) == 0:
-        return
     try:
-        new_vid_path = os.path.join(working_dir, "new_video.mp4")
-        new_vid = cv2.VideoWriter(new_vid_path, cv2.VideoWriter_fourcc(*'avc1'), 30, (1920, 1080))
-
-        print(f'---- saving {len(daily_frames)} frames ----')
-        for frame in daily_frames:
-            new_vid.write(frame)
-        new_vid.release()
-        daily_frames.clear()
-
         temp_vid_path = os.path.join(working_dir, "temp_video.mp4")
+        new_vid_path = os.path.join(working_dir, "new_video.mp4")
+        image_concat_args = list(f"ffmpeg -framerate 30 -pattern_type glob -i {os.path.join(image_dir, '*.jpg')} -c:v libx264 -pix_fmt yuv420p {new_vid_path} -y".split(" "))
+        subprocess.run(image_concat_args)#, stdout=subprocess.DEVNULL)
+
         popen_args = list(f'ffmpeg -f concat -i {os.path.join(working_dir, "video_list.txt")} -c copy {temp_vid_path} -y'.split(" "))
 
-        subprocess.run(popen_args, stdout=subprocess.DEVNULL)
+        subprocess.run(popen_args)#, stdout=subprocess.DEVNULL)
         os.replace(temp_vid_path, os.path.join(working_dir, 'big_video.mp4'))
-
-        print(f'---- done ----')
+        print("------ video updated -----")
     except:
         print('---------------------- COULDNT SAVE VIDEO ------------------------------------------------')
 
-def capture_image(jpg = False):
+def capture_image():
     now_time = datetime.datetime.now()
-    if not (5 <= now_time.hour <= 21):
+    if not (5 <= now_time.hour <= 20):
         return
 
     ret, frame = cap.read()
     if ret:
         txt = now_time.strftime('%Y/%m/%d - %H:%M')
         frame = outlined_text(frame, txt, (10,30))
-        daily_frames.append(frame)
-        if jpg:
-            cv2.imwrite(os.path.join(image_dir, f"{now_time.strftime('%Y_%m_%d__%H_%M')}.jpg"), frame)
+        cv2.imwrite(os.path.join(image_dir, f"{now_time.strftime('%Y_%m_%d__%H_%M')}.jpg"), frame)
         print(txt)
 
 if __name__ == "__main__":
-    schedule.every(3).minutes.do(capture_image)
-    schedule.every(1).hours.do(capture_image, jpg=True)
-    schedule.every().day.at("23:30").do(save)
+    save()
+    exit(0)
+    schedule.every(15).minutes.do(capture_image)
+    schedule.every().day.at("21:15").do(save)
     while running:
         schedule.run_pending()
         time.sleep(20)
