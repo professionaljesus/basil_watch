@@ -65,8 +65,6 @@ def capture_image():
         print(txt)
 
 if __name__ == "__main__":
-    save()
-    exit(0)
     schedule.every(15).minutes.do(capture_image)
     schedule.every().day.at("21:15").do(save)
     while running:
